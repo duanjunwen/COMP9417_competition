@@ -1,0 +1,1 @@
+{"activation_channel": {"SMS": 0, "TAS": 1, "RTR": 2, "WEB": 3, "API": 4, "RETAIL": 5, "BOT": 6, "BATCH": 7, "IVR": 8, "WARP": 9, "APP": 10, "HANDSET": 11}}
