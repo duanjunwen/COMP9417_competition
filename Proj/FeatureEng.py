@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import json
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.impute import SimpleImputer
+from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
 
 
 def writeFeatureMap(path, featureMap):
@@ -1559,38 +1560,29 @@ def FeatureSelection():
     print('dataset Shape after dropna', dataset.shape)
     print('evalset Shape after dropna', evalset.shape)
 
-    # 2.SimpleImputer填充空值
-    print('Simple impute Null Value...')
-    simple_impute = SimpleImputer()
-    dataset_simple = simple_impute.fit_transform(dataset)
-    dataset = pd.DataFrame(dataset_simple, columns=dataset_features)
-    evalset_simple = simple_impute.transform(evalset)
-    evalset = pd.DataFrame(evalset_simple, columns=dataset_features)
-    print('Simple impute Completed...')
+    # 2.填充空值
+    #   1.Category类型填充方法:众数 mode()
+    #   2.数值类型填充方法:中位数 median 或者 均值mean
+    #   3.特殊方法：Category类型用classfier分类， 数值类型用linear回归
+    #   2.1填充dataset
+    for featureName in dataset_features:
+        if featureName != 'customer_id':
+            # 众数填CategoryFeature
+            if featureName in CategoryFeature:
+                dataset[featureName].fillna(dataset[featureName].mode()[0], inplace=True)
+            # 中位数填数值类型Feature
+            else:
+                dataset[featureName].fillna(dataset[featureName].median(), inplace=True)
 
-    # # 2.填充空值
-    # #   1.Category类型填充方法:众数 mode()
-    # #   2.数值类型填充方法:中位数 median 或者 均值mean
-    # #   3.特殊方法：Category类型用classfier分类， 数值类型用linear回归
-    # #   2.1填充dataset
-    # for featureName in dataset_features:
-    #     if featureName != 'customer_id':
-    #         # 众数填CategoryFeature
-    #         if featureName in CategoryFeature:
-    #             dataset[featureName].fillna(dataset[featureName].mode()[0], inplace=True)
-    #         # 中位数填数值类型Feature
-    #         else:
-    #             dataset[featureName].fillna(dataset[featureName].median(), inplace=True)
-    #
-    # #   2.2填充evalset
-    # for featureName in dataset_features:
-    #     if featureName != 'customer_id':
-    #         # 众数填CategoryFeature
-    #         if featureName in CategoryFeature:
-    #             evalset[featureName].fillna(evalset[featureName].mode()[0], inplace=True)
-    #         # 中位数填数值类型Feature
-    #         else:
-    #             evalset[featureName].fillna(evalset[featureName].median(), inplace=True)
+    #   2.2填充evalset
+    for featureName in dataset_features:
+        if featureName != 'customer_id':
+            # 众数填CategoryFeature
+            if featureName in CategoryFeature:
+                evalset[featureName].fillna(evalset[featureName].mode()[0], inplace=True)
+            # 中位数填数值类型Feature
+            else:
+                evalset[featureName].fillna(evalset[featureName].median(), inplace=True)
 
     # 先进性Normalizer(MinMaxScaler)，再用方差筛选
     # Normalizer后的dataset和evalset不用作下一步训练（仅用来筛选特征）
@@ -1617,7 +1609,7 @@ def FeatureSelection():
                                         0.80, 0.85, 0.9,
                                         0.95, 1])
     # print('FeatureThresholdList', FeatureThresholdList)
-    FeatureThreshold = FeatureThresholdList[15]
+    FeatureThreshold = FeatureThresholdList[13]
     # print('FeatureThreshold', FeatureThreshold)
     # 移除低于FeatureThreshold的特征
     removed_feature = [feature for feature in dataset_features if FeatureVar[feature] < FeatureThreshold]
@@ -1641,6 +1633,19 @@ def FeatureSelection():
     print('Features after Var Threshold:', list(dataset.columns))
     print('Number of Features', len(dataset.columns))
 
+    # # PCA
+    # # n_components=20
+    # print('PCA')
+    # pca = PCA(n_components=20)
+    # dataset_pca = pca.fit_transform(dataset)
+    # evalset_pca = pca.transform(evalset)
+    #
+    # dataset = pd.DataFrame(dataset_pca, columns=[f'Feature{i}' for i in range(len(dataset_pca[0]))])
+    # evalset = pd.DataFrame(evalset_pca, columns=[f'Feature{i}' for i in range(len(dataset_pca[0]))])
+    #
+    # print('Features after PCA:', list(dataset.columns))
+    # print('Number of Features', len(dataset.columns))
+
     # 保存数据
     dataset['customer_id'], evalset['customer_id'] = dataset_customer_id, evalset_customer_id
     dataset['ebb_eligible'] = dataset_label
@@ -1658,6 +1663,7 @@ def FeatureSelection():
 
 
 
-Build_TrainFeatures()
-Build_EvalFeatures()
+# Build_TrainFeatures()
+# Build_EvalFeatures()
+
 FeatureSelection()
